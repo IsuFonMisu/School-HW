@@ -1,0 +1,602 @@
+#include <string>
+#include <iostream>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
+
+struct busStop {
+	string busStopName, busLineName;
+	busStop *left;
+	busStop *right;
+	busStop *upp;
+	busStop *down;
+
+	busStop::busStop(){
+		busStopName="";
+
+		left=nullptr;
+		right=nullptr;
+		
+		upp=nullptr;
+		down=nullptr;
+	}
+	busStop::busStop(string lineName, string stopName, busStop * previous, busStop * nextStop){
+		busLineName=lineName;
+		busStopName= stopName;
+		left= previous;
+		right=nextStop;
+		upp=nullptr;
+		down=nullptr;
+	}
+};
+struct busLine {
+	string busLineName;
+	busLine *next;
+	busStop *busStops;
+
+	busLine::busLine(){
+		busLineName="";
+		busLine *next=nullptr;
+		busStop *busStops=nullptr;
+	}
+	busLine::busLine(string name, busLine * nextLine){
+
+		busLineName=name;
+		next= nextLine;
+	}
+};
+
+void printLine(busLine* line);
+void printBusLines();
+
+
+busLine* head = nullptr;
+
+bool deleteBusLine(bool fromMenu=1, busLine*linePtr=nullptr){ /// from menu =1 -> takes lineName as input, prints stuff
+
+	busLine* currBL =  head, *prevBL=nullptr;
+	string lineName;
+	if(fromMenu ==1){
+
+		cout << "Enter the name of the bus line to delete\n";
+		cin >> lineName; 
+
+	}
+
+
+	while (currBL->busLineName !=lineName && fromMenu==1){
+		prevBL = currBL;
+		currBL = currBL->next;
+
+		if(currBL->next == nullptr && currBL->busLineName !=lineName){
+			cout << "Bus line cannot be found. Going back to the previous (main) menu.\n";
+			return 0;
+		}
+	}
+
+	busStop *currBS= currBL->busStops, *temp;
+
+	while(currBS!=nullptr){  ////deletes all stops in a line;
+		temp=currBS;
+		currBS=currBS->right;
+		delete temp;
+	}
+
+	if(currBL==head){ // if buss line is first -> delete
+		head=head->next;
+		delete currBL;
+		return 1;
+	}
+	else{				// if not -> delete
+		prevBL->next=currBL->next;
+		delete currBL;
+		return 1;
+	}
+	return 0;
+}
+
+busStop* findBusStop(busLine * Line, string& stopName){ 
+	/// finds in and after given line //modified from consistencycheck
+	///returns first occurence
+
+	busLine* currBL = Line; //a global variable
+	while(currBL) {
+		busStop* currBS = currBL->busStops;
+		while(currBS) {
+
+			if(currBS->busStopName==stopName) {
+				return currBS;
+			}
+			currBS = currBS->right;
+		}
+		currBL = currBL->next;
+	}
+	return nullptr;
+}
+
+busStop * findBusStop(string stopName, busLine* Line){ //finds in given line
+
+	busStop *currBS = Line->busStops; 
+
+	while(currBS!=nullptr){
+		if(currBS->busStopName == stopName){
+			return currBS;
+		}
+		else{
+			currBS=currBS->right;	
+		}
+	}
+	return nullptr;
+} 
+
+busLine * findBusLine(string lineName){
+	busLine * currBL= head;
+
+	while(currBL){
+		
+		if(currBL->busLineName == lineName){
+			return currBL;
+		}
+		else{
+			currBL=currBL->next;
+		}
+	}
+	return nullptr;
+}
+
+
+bool addBusStop(){
+	
+	string lineName="", newStopName="", prevStopName="";
+
+	busStop *newStop, *prevStop=nullptr;
+	busLine *line;
+
+
+	cout << "Enter the name of the bus line to insert a new bus stop (0 for main menu)\n";
+	cin >> lineName;
+
+	line=findBusLine(lineName);
+
+	if(line==nullptr){
+		cout <<"Bus line cannot be found. Going back to previous menu.\n";
+		return 0;
+	}
+	
+	cout << "The bus line information is shown below\n";
+	printLine(line);
+
+	cout << "Enter the name of the bus stop\n";
+	cin>>newStopName;
+
+	if(findBusStop(newStopName,line)!=nullptr){
+		cout << "Bus stop already exists. Going back to previous menu.\n";
+		return 0;
+	}
+
+	if(newStopName=="0"){
+		cout << "Going back to previous menu.\n";
+		return 0 ;
+	}
+	else{ 
+
+		cout << "Enter the name of the previous bus stop to put the new one after it (0 to put the new one as the first bus stop)\n";
+		cin >> prevStopName;
+
+		if(prevStopName=="0"){
+			newStop = new busStop(line->busLineName, newStopName, nullptr, line->busStops);
+			
+			if(line->busStops!=nullptr)
+				line->busStops->left= newStop;
+			
+			line->busStops = newStop;
+			printBusLines();
+			return 1;
+		}
+
+		prevStop=findBusStop(prevStopName,line);
+
+		while (prevStop==nullptr){
+			cout << "Bus stop does not exist. Typo? Enter again (0 for main menu)\n";
+			cin >> prevStopName;
+
+			if(prevStopName=="0"){
+				cout << "Going back to previous menu.\n";
+				return 0 ;
+			}
+			else{
+
+				prevStop=findBusStop(prevStopName,line);
+
+			}
+		}
+		newStop = new busStop(line->busLineName,newStopName, prevStop, prevStop->right);
+		if(prevStop->right!=nullptr)
+			prevStop->right->left = newStop;   /// insertion code
+
+		newStop->right = prevStop->right;
+		prevStop->right=newStop;
+		newStop-> left = prevStop;
+		printBusLines();
+		return 1;
+	}
+	return 0 ;
+}
+
+bool deleteBusStop(){
+
+	string lineName, stopName;
+
+	busStop *stopToDelete=nullptr;
+	busLine *line;
+
+
+	cout <<"Enter the name of the bus line to delete a new bus stop (0 for main menu)\n";
+	cin >> lineName;
+
+	if(lineName=="0"){
+		cout << "Going back to previous menu.\n";
+
+		return 0;
+	}
+	else{
+		line=findBusLine(lineName);
+		if(line==nullptr){
+			cout <<"Bus line cannot be found. Going back to previous (main) menu.\n";
+			return 0;
+		}
+		cout << "The bus line information is shown below\n";
+
+		printLine(line);
+
+		while(stopToDelete==nullptr){
+			cout << "Enter the name of the bus stop to delete (0 for main menu)\n";
+			cin >> stopName;
+			cout<<endl;
+			if(stopName=="0"){
+				cout << "Going back to previous menu.\n";
+			}
+			else{
+				stopToDelete=findBusStop(stopName, line);
+				if(stopToDelete==nullptr){
+					cout << "Bus stop cannot be found. ";
+				}
+				else{
+					if(stopToDelete->right!=nullptr)
+						stopToDelete->right->left=stopToDelete->left;
+					if(stopToDelete->left!=nullptr)
+						stopToDelete->left->right=stopToDelete->right;
+					else{
+						line->busStops=stopToDelete->right;
+						if(stopToDelete->right==nullptr)
+							deleteBusLine(0, line);
+					}
+					delete stopToDelete;
+					printBusLines();
+					return 1;
+				}
+			}
+		}
+	}
+	return 0;
+}
+
+void printLine(busLine* line){
+
+	busStop *currBS = line->busStops;
+
+	while(currBS) {                         //// print Lline
+		cout << currBS->busStopName  ;
+
+		if(currBS->right!=nullptr){ /// to solve hence problem
+			cout << " <-> ";
+		}
+
+		currBS = currBS->right;
+	}
+	cout <<"\n";
+	delete currBS;
+}
+
+void addBusLine(){
+
+	string name, stop="1";
+	int size=0;
+	
+
+	cout << "Enter the name of the new bus line (0 for exit to main menu).\n";
+	cin	>> name;
+	busLine * newBL = new busLine(name, head);
+
+	while(findBusLine(name)!=nullptr){
+
+		cout << "Bus line already exists: enter a new one (0 for exit)\n";
+		cin >>  name;
+		newBL= new busLine(name, head);
+		if (name=="0"){
+			delete newBL;
+			break;
+		}
+	}
+
+	if (name =="0"){
+		cout <<"";
+	}
+
+	else{
+		busStop *currBS = nullptr, * temp;
+		cout << "Enter the name of the next bus stop (enter 0 to complete)\n";
+		cin >> stop;
+		size++;
+
+		temp=new busStop (newBL->busLineName, stop, nullptr, nullptr);
+		newBL->busStops = temp;
+		currBS=temp;
+		while(stop!="0"){
+			cout << "Enter the name of the next bus stop (enter 0 to complete)\n";
+			cin >> stop;
+			
+			if(stop!="0"){
+
+				if(findBusStop(stop, newBL)!=nullptr){////// check that stop is used or not 
+					cout << "Bus stop already exists in the line\n";
+				}
+				else{
+					temp=new busStop (newBL->busLineName, stop, currBS, nullptr);
+					size++;
+					currBS->right=temp; 
+					currBS=temp;
+				}
+			}
+		}
+		if(size ==1){
+			cout <<"You are not allowed to add an empty bus line\n";
+			deleteBusLine(0, newBL); 
+		}
+		else{
+			cout << "The bus line information is shown below\n";
+			
+			printLine(newBL);
+
+			cout << "Are you sure? Enter (y/Y) for yes (n/N) for no?\n";
+			
+			char add;
+
+			cin >> add;
+				
+			if(add=='y' || add=='Y'){
+				head=newBL;
+				printBusLines();
+			}
+			else{
+				deleteBusLine(0, newBL);
+				delete currBS, newBL, temp;
+			}
+		}
+	}
+}
+
+void readInput(){
+
+	string filename = "busLines.txt", line, stopName, lineName;
+	fstream input;
+	busLine *ptrLine, *tempLine=nullptr;
+	busStop *ptrStop, *tempStop=nullptr;
+
+	input.open(filename.c_str());
+
+	getline(input,line); //// creating head seperately
+
+	stringstream words(line);
+
+	words >> lineName;
+
+	lineName.pop_back();
+	
+	head = new busLine(lineName, nullptr);
+	words >> stopName;
+	tempStop = new busStop(lineName, stopName, nullptr, nullptr);
+	head->busStops = tempStop;
+	ptrStop=tempStop;
+	ptrLine=head;
+
+	while (words >> stopName){
+		
+		tempStop = new busStop(lineName, stopName, ptrStop, nullptr);
+		ptrStop->right=tempStop;
+		ptrStop=tempStop;
+	}
+
+	while (getline(input, line)){
+		stringstream words(line);
+
+		words>> lineName;
+		lineName.pop_back();
+
+		tempLine = new busLine(lineName, nullptr);
+		ptrLine->next=tempLine;
+		ptrLine=tempLine;
+
+		words>> stopName;
+
+		tempStop=new busStop(lineName, stopName, nullptr,nullptr);
+		
+		ptrLine->busStops = tempStop;
+		ptrStop=tempStop;
+
+		while(words >> stopName){
+			tempStop = new busStop(lineName, stopName, ptrStop, nullptr);
+			ptrStop->right=tempStop;
+			ptrStop=tempStop;
+		}
+	}
+	///connectAllVertically();
+}
+
+void printMainMenu() {
+	cout << endl;
+	cout <<"I***********************************************I"<<endl
+	<<"I 0 - EXIT PROGRAM I"<<endl
+	<<"I 1 - PRINT LINES I"<<endl
+	<<"I 2 - ADD BUS LINE I"<<endl
+	<<"I 3 - ADD BUS STOP I"<<endl
+	<<"I 4 - DELETE BUS LINE I"<<endl
+	<<"I 5 - DELETE BUS STOP I"<<endl
+	<<"I 6 - PATH FINDER I"<<endl
+	<<"I***********************************************I"<<endl
+	<<">>";
+	cout << endl;
+}
+
+void printSolution(bool direction, busStop* start, busStop* finish){
+
+	busStop *currBS = start;
+	cout << "You can go there by " << currBS->busLineName <<": ";
+	if(direction){ 
+		while(currBS!=finish){
+			cout << currBS->busStopName << "->";
+			currBS=currBS->right;
+		}
+	}
+	else{ 
+		while(currBS!=finish){
+			cout << currBS->busStopName << "->";
+			currBS=currBS->left;
+		}
+	}
+	cout << finish->busStopName<<endl;
+}
+
+
+bool pathfinder(){
+
+	busLine *currBL=head, *solution = new busLine("solution", nullptr);
+	busStop *start, *currBS, *finish,  *temp, *solutionTail;
+	bool solved =0, direction; //direction 0 = to left 1 = to right
+	string lastStopName, firstStopName;
+
+	cout << "Where are you now?\n";
+	cin >> firstStopName;
+	start = findBusStop( head, firstStopName);
+
+	if(start == nullptr){
+		cout << "Bus stop does not exist in the table. Going back to previous menu.\n";
+		return 0;
+	}
+
+	cout << "Where do you want to go?\n";
+	cin >> lastStopName;
+	finish=findBusStop(head, lastStopName);
+
+	if(finish == nullptr){
+		cout << "Bus stop does not exist in the table. Going back to previous menu.\n";
+		return 0;
+	}
+
+	while(currBL!=nullptr){
+
+		if(findBusStop(firstStopName, currBL)&&findBusStop(lastStopName, currBL)){
+			currBS=currBL->busStops;
+
+			while(currBS !=nullptr){
+
+				if(currBS->busStopName == firstStopName){
+					direction = 1;
+					break;
+				}
+				if(currBS->busStopName == lastStopName){
+					direction =0;
+					break;
+				}
+			}
+
+			printSolution(direction, findBusStop(firstStopName, currBL), findBusStop(lastStopName, currBL));
+			return 1;
+		}
+		currBL=currBL->next;
+	}
+	if(!solved)
+		cout << "Sorry no path from "<<firstStopName<<" to "<<lastStopName<<" could be found.\n";
+	return 0;
+}
+
+bool consistencyCheck() {
+	busLine* currBL = head; //a global variable
+	while(currBL) {
+		busStop* currBS = currBL->busStops;
+		while(currBS) {
+			busStop* rightBS = currBS->right;
+			if(rightBS && rightBS->left != currBS) {
+				cout << "Inconsistency for " << currBL->busLineName
+				<< " " << currBS->busStopName << endl;
+				return false;
+			}
+			currBS = currBS->right;
+		}
+		currBL = currBL->next;
+	}
+	return true;
+}
+
+void printBusLines() { /// slightly modified version of consistency test :)
+	busLine* currBL = head; //a global variable
+	while(currBL) {
+		cout << currBL->busLineName<< ": ";
+
+		printLine(currBL);
+
+		currBL = currBL->next;
+		cout << endl;
+	}
+	delete currBL;
+}
+
+void processMainMenu() {
+	char input;
+	do
+	{
+		if(!consistencyCheck()) {
+			cout << "There are inconsistencies. Exit." << endl;
+			return;
+		}
+		printMainMenu();
+		cout << "Please enter your option " << endl;
+		cin >> input;
+		switch (input) {
+			case '0':
+			cout << "Thanks for using our program" << endl;
+			return;
+			case '1':
+				printBusLines();
+				break;
+			case '2':
+				addBusLine();
+				break;
+			case '3':
+				addBusStop();
+				break;
+			case '4':
+				deleteBusLine();
+				break;
+			case '5':
+				deleteBusStop();
+				break;
+			case '6':
+				pathfinder();
+				break;
+			default:
+				cout << "Invalid option: please enter again" << endl;
+		} //switch
+	} while(true);
+}//processMainMenu
+
+int main(){
+
+	readInput();
+	
+	processMainMenu();
+
+
+	return 0;
+}
