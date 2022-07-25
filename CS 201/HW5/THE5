@@ -1,0 +1,200 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <istream>
+#include <vector>
+#include <sstream>
+#include "date.h"
+#include "Reservation.h"
+#include "strutils.h"
+
+//Berat Duzenli
+
+using namespace std;
+
+bool readboats(vector <Boat>& boats){ // if fail -> true
+	int i=0;
+	ifstream input;
+	string line, filename="Boats.txt";
+	input.open(filename.c_str());
+
+
+	if (input.fail()){
+		return true;
+	}
+	else{
+		getline(input, line);
+		while(getline(input, line)){
+			int id;
+			string name, color;
+			istringstream words(line);
+
+			words >> id >> name >> color;
+
+			Boat ourboat(id, name, color);
+
+			boats.push_back(ourboat);
+		}
+		input.close();
+		return false;
+	} 
+}
+
+Boat findBoat(int boatID, vector<Boat> boats){
+	for (unsigned int i =0 ; i< boats.size() ; i++){
+		if (boats[i].bID()==boatID){
+			return boats[i];
+		}
+	}
+	Boat x(boatID,"",""); ///////-1
+	return x;
+}
+
+Sailor findSailor(int sailorID, vector<Sailor> sailors){
+	for (unsigned int i =0 ; i< sailors.size() ; i++){
+		if (sailors[i].sID()==sailorID){
+			return sailors[i];
+		}
+	}
+	Sailor x(sailorID,"",-1,-1);  ///////-1
+	return x;
+}
+
+bool readsailors(vector<Sailor>& sailors){ // if fail -> true
+	ifstream input;
+	string line, filename="Sailors.txt";
+	input.open(filename.c_str());
+	if(input.fail()){
+		return true;
+	}
+	else{
+		getline (input, line);
+		while(getline(input,line)){
+			int id;
+			double age, rate;
+			string name;
+			
+			istringstream words(line);
+			words >> id >> name >>rate >> age; 
+
+			Sailor ourSailor(id, name, age , rate);
+			sailors.push_back(ourSailor);
+		}
+		return false;
+	}
+}
+
+void display(vector<Reservation> Found){
+	int size=Found.size();
+	for (int i=0; i <size; i++){
+		Found[i].Print();
+	}
+}
+
+
+
+int main(){
+
+	vector<Sailor> sailors;
+	vector<Boat> boats;
+	Reservations reservations;
+
+	ifstream reservesFile;
+
+	string reservationDOC, line;
+
+	cout << "Enter filename for reservation database: ";
+	
+	cin >> reservationDOC;
+	
+	reservesFile.open(reservationDOC.c_str());
+
+	if (readboats(boats) || readsailors(sailors) ||  reservesFile.fail()){
+		cout << "Cannot open the files. Exiting..."<< endl <<endl;
+	}
+	else{
+
+		while (getline(reservesFile, line)){
+
+			char code;
+			int SailorID, BoatID, month, day, year;
+			string stringDate1;
+
+			istringstream words(line);
+			words >> code >> SailorID >> BoatID >> stringDate1;
+			year = atoi(stringDate1.substr(0,4));
+			month = atoi(stringDate1.substr(5,2));
+			day = atoi(stringDate1.substr(8,2));
+
+
+			if (code=='A'){
+				Date reelDate(month, day,year);
+				Reservation reservation(findSailor(SailorID, sailors),findBoat(BoatID, boats), reelDate) ;
+				reservations.AddReservation(reservation);
+				//reservations.Display();
+			}
+	
+			else if (code=='D'){
+
+				if(SailorID == 0){
+					reservations.DeleteReservations(findBoat(BoatID, boats));
+				}
+				else if(BoatID == 0){
+					reservations.DeleteReservations(findSailor(SailorID, sailors));
+				}
+				else {
+					Date reeldate(month, day, year);
+					reservations.DeleteReservations(findBoat(BoatID, boats),findSailor(SailorID, sailors), reeldate);
+				}
+			}
+			else if (code=='F'){
+				cout << "Find Results:"<< endl;
+
+				int size=0;
+
+				if (SailorID == 0 && BoatID == 0){
+					string stringDate2;
+					words >>stringDate2;
+					int year2, month2, day2;
+
+					year2 = atoi(stringDate2.substr(0,4));
+					month2 = atoi(stringDate2.substr(5,2));
+					day2 = atoi(stringDate2.substr(8,2));
+					Date reelDate(month, day,year);
+					Date reelDate2(month2, day2, year2);
+
+					vector<Reservation> Found = reservations.FindReservations(reelDate,reelDate2);
+					
+					size=Found.size();
+					if (size==0){
+						cout << "Error: No matching reservation found between dates " << stringDate1 << " & " << stringDate2 << endl;
+					}
+					else{
+						display(Found);}
+				}
+				else if(SailorID == 0){
+					Date reelDate(month, day,year);
+					vector<Reservation> Found = reservations.FindReservations(findBoat(BoatID,boats),reelDate);
+					size=Found.size();
+					if (size==0){
+						cout << "Error: No matching reservation found for boat id " << BoatID << " on " << stringDate1 << endl;
+					}
+					else{
+						display(Found);}
+				}
+				else if(BoatID==0){
+					Date reelDate(month, day, year);
+					vector<Reservation> Found = reservations.FindReservations(findSailor(SailorID,sailors),reelDate);
+					size=Found.size();
+					if (size==0){
+						cout << "Error: No matching reservation found for sailor id " << SailorID << " on " << stringDate1 << endl;
+					}
+					else{
+						display(Found);}
+
+				}
+				cout << endl;
+			}
+		}
+	}
+}
