@@ -1,0 +1,107 @@
+
+// Ismail Berat Duzenli
+
+#include<iostream>
+#include<string>
+#include<fstream>
+#include<sstream>
+using namespace std;
+
+void takeFile(ifstream& File, string fileType, string& filename){
+
+	while(true){
+		cout <<"Enter the name of the "<< fileType <<" file: ";
+		cin>>filename;
+		File.open(filename.c_str());
+		if (File.fail()){
+			cout << "Error: Cannot open file " << filename << endl;
+			File.clear();
+		}
+		else{
+			break;
+		}
+	}
+}
+void display(string name, string surname, int sum){
+	if (sum !=0){
+		cout <<"Oh! we have "<< name << " " <<surname << " under the sorting hat. "<<name<<", you scored "<<sum<<" points, you are a ";
+		if (sum<10){
+			cout <<"Hufflepuff!";
+		}
+		else if (sum < 15){
+			cout <<"Ravenclaw!";
+		}
+		else if (sum < 21){
+			cout << "Gryffindor!";
+		}
+		else {
+			cout << "Slytherin!";
+		}
+		cout<<endl;
+	}
+	else {
+		cout << "";
+	}
+}
+
+string takeXLine(int lineNo, string file){
+	int current =1;
+	string line;
+	ifstream input;
+	input.open(file.c_str());
+
+	while (getline(input, line)){
+		if (current == lineNo){
+			input.clear();
+			input.seekg(0);
+			return line;
+		}
+		else{
+			current+=1;
+		}
+	}
+	input.clear();
+	input.seekg(0);
+	return line;
+}
+
+int main(){
+	int sum=0, point = 1, keyLine=1, wordNum=0;
+	string name, surname, answer, key, answersString, keysString, keyname, answername;
+	ifstream keyFile, answerFile;
+
+	cout << "Hello and welcome to the Hogwarts house sorting hat program!"<<endl;
+    cout << "When I call your name, you'll come forth, I shall place the sorting hat on your head, and you will be sorted into your houses."<<endl;
+
+	takeFile(keyFile, "key", keyname);
+	takeFile(answerFile, "answer", answername);
+
+
+	while (getline(answerFile, answersString)){
+		wordNum=1, keyLine=1, sum=0;
+		//cout << answersString;
+		istringstream answerStream(answersString);
+		answerStream >> name >> surname;
+		while (answerStream >> answer){
+			keysString = takeXLine(wordNum, keyname);
+			//cout << keysString << "**" << endl;
+			istringstream keyStream(keysString);
+			while(keyStream >> key){
+				if (key==answer){
+					sum+=point;
+				}
+				else{
+					point+=1;
+				}
+			}
+			key="";
+			keyLine++;
+			wordNum++;
+			point=1;
+		}
+		display(name, surname, sum);
+		keyFile.clear();
+		keyFile.seekg(0);
+	}
+	return 0;
+}
