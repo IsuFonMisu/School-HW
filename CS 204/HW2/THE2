@@ -1,0 +1,299 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
+
+// Ismail Berat Duzenli
+
+struct courseNode
+{
+	string courseCode, courseName;
+	vector<int> studentsAttendingIDs;
+	courseNode * next;
+
+	courseNode::courseNode()
+	{
+		courseCode="", courseName="";
+
+		next=NULL;
+	}
+	courseNode::courseNode(string code, string name, courseNode * nextNode){
+		courseCode = code, courseName=name, next= nextNode;
+	}
+	
+	
+	courseNode::courseNode(string code, string name, courseNode * node, int ID){
+		courseCode = code, courseName=name, next= node;
+		studentsAttendingIDs.push_back(ID);
+	}
+}; // nodes of linked list
+
+courseNode* insertCourse(courseNode * head , string course, string courseID){ /// insert new node to linked list when new course appeared
+	courseNode *ptr = head, *temp,*previousNode;
+	temp = new courseNode(courseID, course,NULL);
+	
+	if(course < (*ptr).courseName){ // if course should be before head
+		(*temp).next=head;
+		return temp;
+	}
+	else {
+		while(ptr!=NULL){
+			if((*ptr).courseName> course){ // if encountered a bigger node then insert just before it 
+				(*temp).next=ptr;
+				(*previousNode).next=temp;
+				return head;
+			}
+			else if ((*ptr).next==NULL && course>(*ptr).courseName){ // if reached tail and still inserting course bigger
+
+				(*ptr).next= temp;
+				return head;
+			}
+			else{
+				previousNode=ptr;
+				ptr=(*ptr).next;
+			}
+		}
+	}
+	return head;
+}
+
+bool insertStudentID(vector<int> &students, int studentID){  // insert student in a sorted way
+	//// pre condition : vector and ID to be inserted
+	//// post condition: if already there 0, if inserted 1
+
+	int store=studentID, temp;
+	bool encountered=0, inserted=0;
+
+	students.push_back(studentID);
+
+	for(int i =0; i< students.size(); i++){
+		if ( (students[i] == studentID)&& i!= students.size()-1){
+			students.pop_back();
+			return 0;
+		}
+		else if(studentID<= students[i]){
+			
+			temp=students[i];
+			students[i]=store;
+			store=temp;
+		}
+	}
+	return 1;
+}
+
+
+bool deleteStudentID(vector<int> &students, int studentID){  // deletes student
+	//// pre condition : vector and ID to be dropped
+	//// post condition: if dropped 1 if not  0 (if already not there)
+
+	bool shift=0;
+
+		for(unsigned int i = 0 ; i< students.size(); i++){
+			if((i== students.size()-1 && shift!=0)|| (i== students.size()-1 && students[i]==studentID)){
+				students.pop_back();
+				shift=1;
+			}
+			else if (shift){
+				students[i]=students[i+1];
+			}
+			else if(students[i]==studentID){
+				shift=1;
+				students[i]=students[i+1];
+			}
+		}
+	return shift;
+}
+
+courseNode* findCourse(string courseID, courseNode* head){ // finding a spesific course location
+
+	courseNode * ptr=head;
+
+	while (ptr!=NULL){
+		if((*ptr).courseCode == courseID){
+			return ptr;
+		}
+		else
+			ptr=(*ptr).next;
+	}
+	return NULL;
+}
+
+void addStudents(courseNode* head){ ///// adding students taken from user
+	string line, word, courseName;
+	courseNode* location;
+	int ID;
+	
+	cout << "Give the student ID and the course names and course codes that he/she wants to add:\n";
+	
+
+	cin.ignore();
+	getline(cin,line); ///
+	
+	
+	stringstream words(line);
+	while(words>>word){ 
+		if (word[0]<='9' && word[0]>='0'){ /// chechkin whether word is studentID or not
+			ID=stoi(word);
+			if(insertStudentID((*location).studentsAttendingIDs, ID)){
+
+				cout << "Student with id "<<ID<<" is enrolled to "<< location->courseCode <<".\n";
+
+			}
+			else{
+				cout << "Student with id "<<ID<<" already is enrolled to "<< location->courseCode <<". No action taken.\n";
+			}
+
+		}
+		else{                                           // if "word" is not number then obviously course code
+			location=findCourse(word, head);            // location of course
+			words >> courseName;                        // getting course name from stream so next is ID
+			if (location == NULL){                      // if course doesnt exist
+				head = insertCourse(head,courseName, word);
+				cout << word <<" does not exist in the list of Courses. It is added up.\n";
+				location = findCourse(word, head);
+			}
+		}
+	}
+	cout << "\n";
+}
+
+void dropStudents(courseNode* head){ //// drops students given by user
+	string line, word, courseName, courseID;
+	int studentID;
+	courseNode* location;
+	cout << "Give the student ID and the course names and course codes that he/she wants to drop:\n";
+	
+	cin.ignore();
+	getline(cin,line); //////
+	
+	stringstream words(line);
+
+	while(words>>word){ 
+		if (word[0]<='9' && word[0]>='0'){
+			studentID=stoi(word);
+			if(deleteStudentID((*location).studentsAttendingIDs, studentID)){
+				cout << "Student with id "<<studentID<<" has dropped "<< location->courseCode <<".\n";
+			}
+			else if (location ==NULL){
+				cout << "The "<<courseID<<" course is not in the list, thus student with id 25784 can�t be dropped\n";
+			}
+			else{
+				cout << "Student with id "<<word<<" is not enrolled to "<<location->courseCode<<", thus he can't drop that course.\n";
+			}
+		}
+		else{                                           // if "word" is not number then obviously course code
+			courseID=word;
+			location=findCourse(courseID, head);            // location of course
+			words >> courseName;                        // getting course name 
+		}
+	}	
+}
+
+void display(courseNode *head, bool finalDisplay=0){ //displaying list // second argument for display mode
+
+	courseNode *ptr=head;
+
+	while(ptr!=NULL){
+		cout << (*ptr).courseCode << " " << (*ptr).courseName << ": "  ;
+				
+		for (unsigned int j =0; j< (*ptr).studentsAttendingIDs.size();j++){
+
+
+			cout << (*ptr).studentsAttendingIDs[j] << " ";
+		}
+
+		if((finalDisplay==1) && ((*ptr).studentsAttendingIDs.size() < 3)){
+			cout << "-> This course will be closed";                           
+		}
+
+		cout << endl;
+		ptr=(*ptr).next;
+	}
+}
+
+courseNode* readFile(courseNode *head){ //takes and reads given file
+
+	string line, filename, course, courseID, SStudentID;
+	int intStudentID;
+	fstream input;
+
+	cout << "Please enter file name:\n";
+
+	cin >> filename;
+
+	input.open(filename.c_str());
+
+	cout << "Succesfully opened file "<< filename<< endl;
+	
+	courseNode* location=NULL;
+	
+	getline(input,line);
+
+	stringstream words(line);
+
+	words >> courseID >> course >> intStudentID;
+	head=new courseNode(courseID, course, NULL, intStudentID); /////creating head seperately
+
+	while (getline(input, line)){
+
+		stringstream words(line);
+		words >> courseID >> course >> intStudentID;
+
+		location=findCourse(courseID, head);
+
+		if(location !=NULL){
+			insertStudentID((*location).studentsAttendingIDs, intStudentID);
+		}
+		else{
+			head=insertCourse(head, course, courseID);
+			location=findCourse(courseID, head);
+			insertStudentID((*location).studentsAttendingIDs, intStudentID);
+		}
+	}
+	return head;
+}
+
+
+int main(){
+	
+	courseNode * head=NULL;
+	string filename, line, word;
+	fstream input;
+	int choice;
+
+	head= readFile(head);
+	cout << "The linked list is created.\n";
+	cout << "The initial list is:\n";
+	display(head);
+
+	do{
+		cout << "\nPlease select one of the choices:" << endl << "1. Add to List"<<endl<< "2. Drop from List" << endl <<"3. Display List" << endl << "4. Finish Add/Drop and Exit" << endl;
+		cin >> choice;
+			if(choice==3){
+				cout << "The current list of course and the students attending them:\n";
+				display(head);
+			}
+			else if(choice ==1){
+				addStudents(head);
+			}
+			else if(choice ==2){
+				dropStudents(head);
+			}
+
+	}while(choice!=4);
+
+	cout << "The add/drop period is finished. Printing the final list of courses and students attending them.\n";
+	cout << "NOTE: Courses with less than 3 students will be closed this semester.\n";
+	
+
+	display(head, 1);
+
+	cin.ignore();
+	cin.get();
+
+	return 0 ;
+}
+
