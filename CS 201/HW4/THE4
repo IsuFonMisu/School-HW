@@ -1,0 +1,167 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <fstream>
+#include <sstream>
+
+using namespace std;
+
+struct sailor{
+
+	string name, id, rate, age;
+};
+struct boat{
+	string name, id, color;
+};
+struct reserve{
+
+	string Sid, Bid, date;
+};
+
+void readboats(vector <boat>& boats){
+	int i=0;
+	ifstream input;
+	string word, line, filename="Boats.txt";
+	input.open(filename.c_str());
+
+	if (input.fail()){
+		cout << "Cannot open the files. Exiting..."<<endl;
+	}
+	else{
+		getline(input, line);
+		while(getline(input, line)){
+
+			boat ourBoat;
+
+			istringstream words(line);
+			words >> ourBoat.id >> ourBoat.name >> ourBoat.color;
+			boats.push_back(ourBoat);
+			i++;
+		}
+		input.close();
+	}
+}
+
+void readsailors(vector <sailor>& sailors){
+	int i=0;
+	ifstream input;
+	string word, line, filename="Sailors.txt";
+	input.open(filename.c_str());
+	getline(input, line);
+
+	if (input.fail()){
+		cout << "Cannot open the files. Exiting..."<<endl;
+	}
+	else{
+		while(getline(input, line)){
+
+			sailor ourSailor;
+
+			istringstream words(line);
+			words >> ourSailor.id >> ourSailor.name >> ourSailor.rate >> ourSailor.age;
+			if(stod(ourSailor.age)==stoi(ourSailor.age)){
+				ourSailor.age=to_string((stoi(ourSailor.age)));}
+			if(stod(ourSailor.rate)==stoi(ourSailor.rate)){
+				ourSailor.rate=to_string((stoi(ourSailor.rate)));}
+
+			sailors.push_back(ourSailor);
+			i++;
+		}
+		input.close();
+	}
+}
+
+void readReserves(vector <reserve>& reserves, string filename){
+	int i=0;
+	ifstream input;
+	string word, line, SailorID, BoatID, Date;
+	input.open(filename.c_str());
+	getline(input, line);
+	while(getline(input, line)){
+		reserve ourReserve;
+		istringstream words(line);
+		words >> ourReserve.Sid >> ourReserve.Bid >> ourReserve.date; 
+		reserves.push_back(ourReserve);
+		i++;
+	}
+	input.close();
+}
+
+int findLocBoat(string id, vector<boat> ourVector){
+
+	for (unsigned int i =0; i< ourVector.size(); i++){
+		if (ourVector[i].id == id){
+			return i;
+		}
+	}
+	return 0;
+}
+
+int findLocSailor(string id, vector<sailor> ourVector){
+	for (unsigned int i =0; i< ourVector.size(); i++){
+		if (ourVector[i].id == id){
+			return i;
+		}
+	}
+	return 0;
+}
+
+void makeLines(vector<string>& lines, vector<boat> boats, vector<sailor> sailors, vector <reserve> reserves){
+	string line;
+
+	for (unsigned int i =0; i< reserves.size();i++){
+		int sailorLoc=findLocSailor(reserves[i].Sid, sailors), boatLoc=findLocBoat(reserves[i].Bid, boats);
+		line=reserves[i].date+" -> " + sailors[sailorLoc].name + 
+			
+			"(" + sailors[sailorLoc].age + "," + sailors[sailorLoc].rate + ") has reserved " 
+			
+			+ boats[boatLoc].name + "(" + boats[boatLoc].color + ")";
+		lines[i]= line;
+	}
+}
+
+void sortedDisplay(vector <string> lines){
+
+	string min="9999";
+	int minPos= 0;
+
+	for (unsigned int j=0; j< lines.size(); j++ ){
+		min="9999";
+		for (unsigned int i=0 ; i< lines.size(); i++){
+			if (lines[i] < min && lines[i]!=""){
+				min=lines[i];
+				minPos = i;
+			}
+		}
+		lines[minPos]="9999";
+		cout << min << endl;
+	}
+}
+
+int main(){
+
+	vector <boat> boats;
+	vector <sailor> sailors;
+	vector <reserve> reserves;
+
+	ifstream reservesFile;
+	string filename, line;
+
+	readboats(boats);
+	readsailors(sailors);
+
+	cout << "Enter filename for reservation database: ";
+	cin >> filename;
+	reservesFile.open(filename.c_str());
+	if(reservesFile.fail()){
+		cout <<"Cannot open the files. Exiting..."<<endl;
+		return 0;
+	}
+	else{
+		readReserves(reserves, filename);
+		vector <string> lines(reserves.size());
+		makeLines(lines, boats, sailors, reserves);
+		sortedDisplay(lines);	
+	}
+	return 0; 
+}
