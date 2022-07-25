@@ -1,0 +1,168 @@
+#include <iostream>
+#include <string>
+#include "strutils.h"
+
+// ismail berat duzenli
+
+bool checkAlpha(string entry){
+	string alphabet ="qwertyuopasdfghjklizxcvbnm" ;
+	int len = entry.length();
+
+	for (int i = 0; i< len; i++){
+		if (alphabet.find(entry[i])== string::npos){
+			return false;
+		}
+	}
+	return true;
+}
+
+string getWord(string Pone,string Ptwo){
+	string word, alphabet ="qwertyuopasdfghjklizxcvbnm" ;
+	bool valid = true;
+	int len;
+
+	do {
+		valid=true;
+		cout << Pone << ", please input the word you want "<<Ptwo<<" to guess: ";
+		cin >> word;
+		ToLower(word);
+		len=word.length();
+
+		for (int i = 0; i< len; i++){
+			if (checkAlpha(word)==false){
+				valid = false;
+				cout << "Invalid word! Try again." << endl;
+				i=len;
+			}
+		}
+	} while (valid == false);
+	
+	return word;
+}
+
+string hide(string word){
+	string hidden="";
+	int len = word.length();
+
+	for (int i=0; i< len; i++){
+		hidden+="-";
+	}
+	return hidden;
+}
+
+void gameDisplay(int health, string word, string name){
+	if (health == 5){
+		cout << "You have no free guess left."<< endl ;
+	}
+	else if (health > 2 ){
+		cout << "You have lost a leg!"<< endl;
+	}
+	else if (health > 0){
+		cout << "You have lost an arm!"<< endl;
+	}
+	else if (health == 0){
+		cout << "You have lost a head! GAME OVER!"<< endl;
+		cout << name << " lost the game :(";
+	}
+	else if (health == -5){
+		cout << "The word is: " << word << endl;
+		cout << "Congratulations "<< name << ", you won!" << endl;
+		cout << name << " won the game!" ;
+	}
+
+}
+
+void checkReplace(string word, string &hiddenword, string guess){
+	int len = hiddenword.length();
+	for (int i = 0; i< len; i++){
+		if (word[i]==guess[0]){
+			hiddenword[i]=guess[0];
+		}
+	}
+}
+
+
+
+int main (){
+	string Pone, Ptwo, word, hiddenWord, guess, wordGuesses = "+", letterGuesses = "+", choice;
+	int health = 6,  guessLen;
+
+	cout << "Welcome to the HANGMAN GAME"<< endl;
+	cout << "---------------------------"<< endl;
+
+	cout << "Player one, please enter your name: ";
+	cin >> Pone;
+	cout << "Player two, please enter your name: ";
+	cin >> Ptwo;
+	cout << "OK " << Pone << " and " << Ptwo << ". Let's start the game!" << endl;
+	word = getWord(Pone, Ptwo);
+	hiddenWord= hide(word);
+
+	cout << Ptwo <<", you have 1 free guess, after that you will lose limbs!" << endl;
+
+	while (health >0) {
+		guess = "";
+
+		cout << "The word is: " << hiddenWord << endl;
+		cout << Ptwo <<", do you want to guess the word(1) or guess a letter(2)? ";
+		cin >> choice;
+		if (choice != "1" && choice != "2"){
+			cout << "Invalid option!" << endl;
+
+		}
+		else{
+			if (choice =="1"){
+				cout << "Your guess: ";
+				cin >>guess;
+				ToLower(guess);
+
+				if (wordGuesses.find("+"+guess+"+")==string::npos){
+					if (checkAlpha(guess)){
+						if (guess == word){
+							health = -5;
+							gameDisplay(health, word, Ptwo);
+						}
+						else{
+							wordGuesses += guess + "+";
+							health -= 1;
+							gameDisplay(health, word, Ptwo);
+						}
+					}
+					else{
+						cout << "Invalid entry! Try again." << endl;
+					}
+				}
+				else if (choice =="2"){
+					cout << "Guess entered before! Try again." << endl;
+				}
+			}
+			else{
+				cout << "Your guess: ";
+				cin >>guess;
+				ToLower(guess);
+				guessLen= guess.length();
+
+				if (checkAlpha(guess) == false || guessLen !=1){
+					cout << "Invalid entry! Try again."<< endl;
+				}
+				else if (letterGuesses.find("+"+guess+"+") != string::npos){
+					cout << "Guess entered before! Try again." << endl;
+				}
+				else if (word.find(guess) != string::npos){
+					checkReplace(word, hiddenWord, guess);
+					letterGuesses += guess + "+";
+				}
+				else{
+					health-=1;
+					letterGuesses += guess + "+";
+					gameDisplay(health, word, Ptwo);
+				}
+				if (hiddenWord == word){
+					health = -5;
+					gameDisplay(health, word, Ptwo);
+				}
+			}
+		}
+	}
+	return 0;
+}
