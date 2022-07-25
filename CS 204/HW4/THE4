@@ -1,0 +1,258 @@
+#include <string>
+#include <iostream>
+#include <fstream>
+#include "DynQueue.h"
+#include "Stack.h"
+#include "Queue.h"
+#include "Services.h"
+
+using namespace std;
+
+
+void addInstructorRequest(Queue& instructorRequests, Services services){
+
+	string request, name;
+	int ID;
+
+	cout << "Add a service (function) that the instructor wants to use:\n";
+	cin >> request;
+
+	functionNode *location = services.findFunction(request);  /// returns address of given function to process // nullptr if not exist
+
+
+	if (location==nullptr){//// if function is not in services
+		cout << "The requested service (function) does not exist\n";
+		cout << "GOING BACK TO MAIN MENU";
+	}
+	else{
+		cout << "Give instructor's name: ";
+		cin >> name;
+		cout << "Give instructor's ID (an int): ";
+		cin >> ID;
+		instructorRequests.enqueue(name, request, ID);  /// add request to queue
+		cout << "Prof. " << name <<"'s service request of "<<request<< "\nhas been put in the instructor's queue.\nWaiting to be served...\n\n";
+	}
+}
+
+void addStudentRequest(DynQueue& studentRequests, Services services){
+
+	string request, name;
+	int ID;
+
+	cout << "Add a service (function) that the student wants to use:\n";
+	cin >> request;
+
+	functionNode *location = services.findFunction(request); /// returns address of given function to process // nullptr if not exist
+
+	if (location==nullptr){   //// if function is not in services
+		cout << "The requested service (function) does not exist\n";
+		cout << "GOING BACK TO MAIN MENU";
+	}
+	else{
+		cout << "Give student's name: ";
+		cin >> name;
+		cout << "Give student's ID (an int): ";
+		cin >> ID;
+		studentRequests.enqueue(ID, name, request); /// add request to queue
+
+		cout << name <<"'s service request of "<<request<< "\nhas been put in the students's queue.\nWaiting to be served...\n\n";
+	}
+}
+
+
+void processARequest(string functionName, DynStack& stack, Services services)
+	{
+	DynStack helper;  /// helper -> to print 
+	int newElements=0;
+	string command, function, obj;
+
+	functionNode *funcLocation = services.findFunction(functionName); ///// 
+	
+	if(funcLocation!=nullptr){
+		commandNode *currCommand = funcLocation->commands;
+
+		while (currCommand!=nullptr)
+		{
+
+			if(currCommand->command =="define")
+			{
+				//process the define command
+
+				stack.push(functionName, "define", currCommand->object);
+
+				newElements++;;
+			}
+			else if (currCommand->command=="call")
+			{
+				cout << "Calling "<< currCommand->object << " from " << function << endl; /// currCommand-> object = function Name
+				// the recursion goes here
+				processARequest(currCommand->object, stack, services);
+			}
+			else{
+				//print the stack �
+				cout << "PRINTING THE STACK TRACE:\n";
+
+				if(stack.isEmpty()){
+					cout << "The stack is empty\n";
+				}
+				else{
+					while(!stack.isEmpty()){
+						stack.pop(function, command,obj);
+						helper.push(function, command,obj);
+
+					}
+					while (!helper.isEmpty()){
+						helper.pop(function, command,obj);
+						stack.push(function, command,obj);
+						cout << function << ": " << command << " "<< obj <<endl;
+					}
+				}
+			}	// while
+
+			currCommand=currCommand->next;
+				//�
+		}
+
+		for(int i=0;i<newElements;i++){
+			string a, b, c; // dummy to delete
+			stack.pop(a,b,c);
+		}
+
+		cout<<functionName<<" is finished. Clearing the stack from it's data... "<<endl;
+		system("pause");
+	}
+	else{
+		cout<< "The requested service (function) does not exist.\nGOING BACK TO MAIN MENU\n\n";
+	}
+}
+
+
+void processARequest(DynQueue& studentsQueue, Queue& instructorsQueue, DynStack& stack, Services services)
+{
+
+	string functionName, name;
+	int ID;
+
+	if (!instructorsQueue.isEmpty())
+	{
+		//if instructors queue is not empty, process the next request
+
+		cout << "Processing instructors queue..."<<endl;
+		
+		instructorsQueue.dequeue(name, functionName, ID);	
+
+		cout << "Processing prof."<<name<<"'s request (with ID "<<  ID <<") of service (function):\n"<<functionName<<endl; 
+
+		processARequest(functionName, stack,services);
+		cout<<"GOING BACK TO MAIN MENU"<<endl;
+	}
+	else if (!studentsQueue.isEmpty())
+	{
+
+		//if instructors queue is empty and student�s not,
+		//then process the next student request 
+
+		cout <<"Instructors queue is empty. Proceeding with students queue...\n";
+		studentsQueue.dequeue(ID, name, functionName);
+
+		cout << "Processing "<<name<<"'s request (with ID "<<ID << ") of service (function):\n"<<functionName<<endl;
+
+		processARequest(functionName, stack, services);
+		cout<<"GOING BACK TO MAIN MENU"<<endl;
+	}
+	else
+	{
+		// otherwise�
+		cout<<"Both instructor's and student's queue is empty.\nNo request is processed."<<endl<<"GOING BACK TO MAIN MENU"<<endl;
+	}
+}
+
+
+
+int main(){
+
+	Services services;
+	string filename, letter;
+	fstream input;
+
+	cout << "If you want to open a service (function) defining file, then press (Y/y) for 'yes', otherwise press any single key\n";
+	cin >> letter;
+	if(letter =="y" || letter =="Y"){ //////// taking inputs
+		while (letter =="y" || letter =="Y"){
+			cout << "Enter the input file name: ";
+			cin >> filename;
+
+			input.open(filename.c_str());
+
+			if (input.fail()){ //// if not open
+				cout << "Input file couldn't opened. Program is terminating...\n";
+				return 0;
+			}
+			else{
+				input.close(); //////after check close to open later
+				services.addFunction(filename);
+				cout << "Do you want to open another service defining file?\nPress (Y/y) for 'yes', otherwise press anykey\n";
+				cin >> letter;
+			}
+		}
+	}
+	else{
+		cout << "There is no services to be served.\nProgram exiting\n";
+		system("pause"); 
+		exit(0);
+	}
+
+	services.display();
+
+
+	DynQueue studentRequests;
+	Queue instructorRequests(10); ///// create queues and stack
+	DynStack stack;
+
+
+
+
+	while (true){ 
+		cout << endl; 
+		cout<<"**********************************************************************"<<endl 
+			<<"**************** 0 - EXIT PROGRAM                        *************"<<endl 
+			<<"**************** 1 - ADD AN INSTRUCTOR SERVICE REQUEST   *************"<<endl 
+			<<"**************** 2 - ADD A STUDENT SERVICE REQUEST       *************"<<endl 
+			<<"**************** 3 - SERVE (PROCESS) A REQUEST           *************"<<endl 
+			<<"**********************************************************************"<<endl; 
+		cout << endl; 
+		int option; 
+		cout << "Pick an option from above (int number from 0 to 3): "; 
+		cin>>option; 
+		switch (option) { 
+			case 0: 
+				cout<<"PROGRAM EXITING ... "<<endl; 
+				services.clearServices();
+				instructorRequests.clear(); //// clears dynamically allocated memory
+				studentRequests.clear();
+				system("pause"); 
+				exit(0); 
+			case 1: 
+				
+				if(!instructorRequests.isFull()) // if queue is not full
+					addInstructorRequest(instructorRequests, services);  /// adds instructor request
+				else
+					cout << "Instructors queue is full\n";
+				break; 
+			case 2: 
+				addStudentRequest(studentRequests, services);  /// adds student request
+				break; 
+			case 3: 
+				processARequest(studentRequests, instructorRequests, stack, services);  /// process first request
+				break; 
+			default: 
+				cout<<"INVALID OPTION!!! Try again"<<endl; 
+		}//switch 
+	}//while (true)
+
+	instructorRequests.clear();
+	studentRequests.clear(); //// clears dynamically allocated memory // precaution for an unexpected case
+	services.clearServices();
+
+	return 0;
+}
