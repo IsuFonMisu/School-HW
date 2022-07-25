@@ -1,0 +1,207 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include "randgen.h"
+
+using namespace std;
+
+// Ismail Berat Duzenli
+
+void display(vector<vector<char>> displayingMatric, int openRow=-1, int openColoumn=-1, char openValue=0){
+	//Pre condition matrice to be displayed: optional 1 cell coordinate and value to be displayed
+	//it displays the matrice to be displayed and took other valuables to display a cell without changin matrice itself
+	
+	
+	cout << "\n\n";
+	for(int r =0; r< displayingMatric.size();r++){
+
+		for (int c=0; c<displayingMatric[0].size(); c++){
+
+			if(openRow==r && openColoumn == c){
+				cout << openValue <<"\t";
+			}
+			else{
+				cout << displayingMatric[r][c] <<"\t";
+			}
+		}
+		cout << "\n\n";
+	}
+	cout << "\n\n";
+}
+
+
+void generateBombs(vector<vector<char>>& Bombvector, const int & nrMines){
+	// pre condition: empty matrice to be filled, number of mines to put
+	// post condition: matrice that mines have been put
+	// puts random mines in a r*c matrice
+
+	int coloumnSize= Bombvector.size();
+	int rowSize=Bombvector[0].size();
+	RandGen random;
+	int locationID, assignedBomb=0;
+
+	while (assignedBomb< nrMines){
+		
+		locationID = random.RandInt(0,coloumnSize*rowSize-1);                     //random number betwwen 0-(area-1)
+																				  //ex: 0 1 2  (mod rowSize) gives coloumn number 
+		if(Bombvector[locationID/rowSize][locationID%rowSize] != 'B'){            //    3 4 5  ID/   row size gives row number (since int)
+			Bombvector[locationID/rowSize][locationID%rowSize] = 'B';             //    6 7 8
+			assignedBomb+=1;
+		}
+	}
+}
+
+
+
+void prepareDataVector(vector<vector<char>>& dataVector, vector<vector<char>>& bombVector){
+	//pre condition, empty data matrice, matrice including bombs
+	//it prepares data matrice that every cell contains how many bombs exist nearby
+
+	int rowSize=dataVector[0].size(), coloumnSize=dataVector.size();  //rowSize = coloumn number / coloumnSize= row number
+
+	for(int r=0; r< coloumnSize;r++){
+
+		for(int c=0; c< rowSize; c++){
+
+			if(bombVector[r][c] == 'B'){
+
+				for(int dataR =-1; dataR <2; dataR++){          /// if a cell contains bomb, it increases value of surrounding cells(3x3) by 1
+					for(int dataC =-1; dataC < 2; dataC++){
+
+						if(r+dataR >= 0 && c+dataC >= 0 && r+dataR < coloumnSize && c+dataC < rowSize ){
+							dataVector[r+dataR][c+dataC] +=1;
+						}
+					}
+				}
+				dataVector[r][c]-=1; // if cell has bomb, -1 since cell shouldn't count bomb inside it
+			}
+		}
+	}
+}
+
+
+int main(){
+
+	string selectedChoice ="0";                                           
+	int row, coloumn, nrMines =0, Area; //Area: left areas when == 0 -> win
+	int takenR, takenC;    // input coordinates to be seen or opened
+
+
+	cout <<"Give the dimensions of the matrix: ";
+	cin >> row >> coloumn;
+	Area=row*coloumn;
+	vector<vector<char>> displayMatrice(row, vector<char>(coloumn,'X')); //matrice to show player
+	vector<vector<char>> bombMatrice(row, vector<char>(coloumn,'O'));    //matrice have bomb locations
+	vector<vector<char>>  dataMatrice(row, vector<char>(coloumn,'0'));   //matrice that cells have nrMines surrounding
+
+	cout << "\nHow many bombs: ";
+	cin>> nrMines;
+
+	while(nrMines<1 || nrMines>=row*coloumn){ //check input
+		if(nrMines<1){
+			cout << "\nThe number of bombs could not be less than one. Please give the number of bombs again: ";
+			cin >> nrMines;
+		}
+		else{
+			cout << "\nThe number of bombs can not be greater than the whole number of cells minus one. Please give the number of bombs again: ";
+			cin >> nrMines;
+		}
+	}
+
+	generateBombs(bombMatrice, nrMines);
+
+	prepareDataVector(dataMatrice, bombMatrice);
+
+
+	//display(bombMatrice); basically answerKey
+	//display(dataMatrice); hidden matrice having all cell info
+
+	display(displayMatrice);
+
+	while(selectedChoice!="3"){
+
+		cout<<"Press:\n\n";
+
+		cout << "1. If you want to find out the surrounding of a cell\n\n";
+		cout << "2. If you want to open the cell\n\n";
+		cout << "3. If you want to exit.\n\n";
+
+		cin >> selectedChoice;
+
+		while(selectedChoice !="1" && selectedChoice!="2" && selectedChoice!="3"){ //check input
+			cout <<"\nYour input is wrong. Please select one of the options: 1, 2 or 3.\n\n";
+			cin >> selectedChoice;
+		}
+
+		if (selectedChoice=="3"){
+
+			cout << "\nProgram exiting ...\n";
+
+		}
+		else if(selectedChoice=="1"){
+
+			cout << "\nGive the coordinates: ";
+			cin >> takenR>>takenC;
+
+			while(takenR>=row || takenC>=coloumn){
+
+				cout << "\n\nIt is out of range. Please give a valid coordinates: ";
+				cin >>takenR >>takenC;
+			}
+			cout << "\n\nDisplaying the surrounding of ("<<takenR<<","<<takenC<<"):";
+			display(displayMatrice,takenR,takenC, dataMatrice[takenR][takenC]); // displays matrice without changing displayingmatrice
+			cout <<"Around ("<<takenR<<","<<takenC<<") you have "<<dataMatrice[takenR][takenC]<<" bomb(s)\n\n";
+
+		}
+		else{
+
+			cout << "\nGive the coordinates: ";
+			cin >> takenR>>takenC;
+			
+			while(takenR>=row || takenC>=coloumn){
+
+				cout << "\n\nIt is out of range. Please give a valid coordinates: ";
+				cin >>takenR >>takenC;
+			}
+			
+			cout << "\n\n\nOpening cell ("<<takenR<<","<<takenC<<"):";
+
+			if(bombMatrice[takenR][takenC] == 'B'){
+				display(displayMatrice,takenR,takenC,'B');
+				cout << "Unfortunately, you stepped on a mine\n\n";
+				cout << "Arrangement of mines:\n\n";
+
+				for(int r  = 0; r<row;r++){   ////// uncovering whole area
+					for(int c = 0; c < coloumn; c++){
+
+						if ( bombMatrice[r][c]=='B'){ //if there is bomb 
+							displayMatrice[r][c]= 'B' ;
+						}
+						else{
+							displayMatrice[r][c] = dataMatrice[r][c]; //if there isn't
+						}
+					}
+					cout << endl<< endl;
+				}
+				display(displayMatrice);
+
+				cout <<"\n\n>>>>> Game Over! <<<<<\n";
+				selectedChoice="3";
+			}
+			else{
+
+				displayMatrice[takenR][takenC]=dataMatrice[takenR][takenC];  // open a cell (change cell's value)
+				display(displayMatrice);
+				Area-=1; 
+
+				if (Area==nrMines){
+					selectedChoice="3";
+					cout <<"\nCongratulations! All the non-mined cells opened successfully\n\n";
+					cout <<"You won!\n\n";
+					cout << ">>>>> Game Over! <<<<<\n\n";
+				}
+			}
+		}
+	}
+	return 0 ;
+}
